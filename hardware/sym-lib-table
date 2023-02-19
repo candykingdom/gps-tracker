@@ -1,0 +1,4 @@
+(sym_lib_table
+  (version 7)
+  (lib (name "controller-rescue")(type "Legacy")(uri "/home/adam/hardware/firefly2/hardware/controller/controller-rescue.lib")(options "")(descr ""))
+)
