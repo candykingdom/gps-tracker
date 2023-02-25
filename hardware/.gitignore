@@ -17,6 +17,7 @@ _autosave-*
 *-save.pro
 *-save.kicad_pcb
 fp-info-cache
+gps-tracker-backups/
 
 # Netlist files (exported from Eeschema)
 *.net
