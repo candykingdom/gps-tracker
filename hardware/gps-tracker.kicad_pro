@@ -55,7 +55,14 @@
           "width": 0.0
         }
       ],
-      "drc_exclusions": [],
+      "drc_exclusions": [
+        "clearance|147953500|88506500|6645b753-00df-4d42-ad96-53783ffaf913|e877dd74-49d3-44a3-b666-84c58e44c902",
+        "clearance|148146500|87006500|980ef932-138e-4b0f-ba85-e8b459c2feac|2b5f68a9-df7a-4569-8246-788c04009dc9",
+        "clearance|148933500|87006500|c82ba8b4-8104-4ac1-a76c-f39b4411f5e0|d0e25e97-0094-495e-9c99-cd1e4c941c5f",
+        "clearance|148933500|88506500|617a04e5-0130-48d4-9099-36ef79be8e38|bc7c0277-014e-4f01-af16-3d3630a647a2",
+        "courtyards_overlap|117340001|64770001|df8f6a37-29fe-4e83-b7d3-ce33bb96652e|efcad525-9580-4246-bc83-a6182ac3d563",
+        "courtyards_overlap|117340001|64810001|16e809fa-acb1-4f3f-a9ac-946058d5c466|22afca48-2afd-44ec-9ba3-01d537dc4076"
+      ],
       "meta": {
         "version": 2
       },
@@ -69,10 +76,10 @@
         "diff_pair_gap_out_of_range": "error",
         "diff_pair_uncoupled_length_too_long": "error",
         "drill_out_of_range": "error",
-        "duplicate_footprints": "warning",
-        "extra_footprint": "warning",
+        "duplicate_footprints": "error",
+        "extra_footprint": "error",
         "footprint": "error",
-        "footprint_type_mismatch": "ignore",
+        "footprint_type_mismatch": "warning",
         "hole_clearance": "error",
         "hole_near_hole": "error",
         "invalid_outline": "error",
@@ -81,24 +88,24 @@
         "items_not_allowed": "error",
         "length_out_of_range": "error",
         "lib_footprint_issues": "warning",
-        "lib_footprint_mismatch": "warning",
+        "lib_footprint_mismatch": "ignore",
         "malformed_courtyard": "error",
         "microvia_drill_out_of_range": "error",
-        "missing_courtyard": "ignore",
-        "missing_footprint": "warning",
+        "missing_courtyard": "warning",
+        "missing_footprint": "error",
         "net_conflict": "warning",
         "npth_inside_courtyard": "ignore",
         "padstack": "warning",
         "pth_inside_courtyard": "ignore",
         "shorting_items": "error",
-        "silk_edge_clearance": "warning",
-        "silk_over_copper": "warning",
-        "silk_overlap": "warning",
+        "silk_edge_clearance": "ignore",
+        "silk_over_copper": "ignore",
+        "silk_overlap": "ignore",
         "skew_out_of_range": "error",
-        "solder_mask_bridge": "error",
+        "solder_mask_bridge": "warning",
         "starved_thermal": "error",
-        "text_height": "warning",
-        "text_thickness": "warning",
+        "text_height": "ignore",
+        "text_thickness": "ignore",
         "through_hole_pad_without_hole": "error",
         "too_many_vias": "error",
         "track_dangling": "warning",
@@ -124,7 +131,7 @@
         "min_text_thickness": 0.08,
         "min_through_hole_diameter": 0.19999999999999998,
         "min_track_width": 0.09,
-        "min_via_annular_width": 0.13,
+        "min_via_annular_width": 0.09999999999999999,
         "min_via_diameter": 0.39999999999999997,
         "solder_mask_clearance": 0.0,
         "solder_mask_min_width": 0.0,
@@ -173,7 +180,6 @@
       ],
       "track_widths": [
         0.0,
-        0.0,
         0.127,
         0.15,
         0.2,
@@ -194,6 +200,10 @@
           "drill": 0.4
         },
         {
+          "diameter": 0.7,
+          "drill": 0.4
+        },
+        {
           "diameter": 1.0,
           "drill": 0.6
         }
@@ -208,7 +218,9 @@
     "equivalence_files": []
   },
   "erc": {
-    "erc_exclusions": [],
+    "erc_exclusions": [
+      "multiple_net_names|3340100|800100|9d2611cb-b4fc-4e73-bf48-7ee23ab17978|21f69e6b-cb66-4ac4-a639-b447e99fefe4|||"
+    ],
     "meta": {
       "version": 0
     },
@@ -498,7 +510,7 @@
       "workbook_filename": ""
     },
     "page_layout_descr_file": "",
-    "plot_directory": "",
+    "plot_directory": "ref",
     "spice_adjust_passive_values": false,
     "spice_current_sheet_as_root": false,
     "spice_external_command": "spice \"%I\"",
