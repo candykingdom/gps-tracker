@@ -1,13 +1,13 @@
 "Source:","/home/adam/hardware/gps-tracker/hardware/gps-tracker.kicad_sch"
-"Date:","Thu 06 Apr 2023 09:48:25 PM MDT"
+"Date:","Thu 06 Apr 2023 10:05:09 PM MDT"
 "Tool:","Eeschema 7.0.1-3b83917a11~172~ubuntu22.04.1"
 "Generator:","/usr/share/kicad/plugins/bom_csv_grouped_by_value.py"
-"Component Count:","95"
+"Component Count:","94"
 
 "Collated Components:"
 
 "Item","Qty","Reference(s)","Value","LibPart","Footprint","Datasheet","DNP","Description","LCSC","MANUFACTURER","MAXIMUM_PACKAGE_HEIGHT","MPN","Manufacturer","PARTREV","STANDARD","Sim.Device","Sim.Pins"
-"1","18","C1, C4, C6, C8, C9, C14, C17, C18, C20, C24, C25, C27, C29, C30, C31, C32, C33, C36","100nF","Device:C","Capacitor_SMD:C_0402_1005Metric","~","","","C307331","","","","","","","",""
+"1","17","C1, C4, C6, C8, C9, C14, C17, C18, C20, C24, C25, C27, C30, C31, C32, C33, C36","100nF","Device:C","Capacitor_SMD:C_0402_1005Metric","~","","","C307331","","","","","","","",""
 "2","11","C2, C5, C7, C10, C11, C12, C21, C22, C23, C34, C35","10uF","Device:C","Capacitor_SMD:C_0603_1608Metric","~","","","C96446","","","","","","","",""
 "3","3","C3, C16, C19","220uF","Device:C_Polarized","Capacitor_THT:CP_Radial_D10.0mm_P5.00mm","~","","","","","","ER1E221MP51007RU","","","","",""
 "4","4","C15, C26, C28, C37","47uF","Device:C","Capacitor_SMD:C_1206_3216Metric","~","","","C96123","","","","","","","",""
