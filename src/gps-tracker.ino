@@ -53,7 +53,7 @@ void setup() {
   digitalWrite(kLed, HIGH);
 
   Serial2.begin(115200);
-  Serial2.printf("Booting...\n");
+  // Serial2.printf("Booting...\n");
 
   SPI.setMISO(kMiso);
   SPI.setMOSI(kMosi);
@@ -107,19 +107,25 @@ void DumpCompassMinMax() {
 void DumpCompassHeading() {
   sensors_event_t event;
   compass.getEvent(&event);
-  int16_t x = compass.raw.x + 527;
-  int16_t y = compass.raw.y + 435;
-  int16_t z = compass.raw.z + 167;
+  int16_t x = compass.raw.x -147 + 297;
+  int16_t y = compass.raw.y -76.5 + 151.0;
+  int16_t z = compass.raw.z + 6 - 19.5;
   float heading = (atan2(y, x) * 180) / 3.141593;
-  // float heading =
-  //     -1 * (atan2(event.magnetic.x, event.magnetic.y) * 180) / 3.141593;
 
   // Normalize to 0-360
   if (heading < 0) {
     heading = 360 + heading;
   }
-  // Serial2.println(heading);
-  // Serial2.printf("x:%4d, y:%4d, z:%4d\n", x, y, z);
+  Serial2.println(heading);
+}
+
+// For use with the Jupyter notebook in Adafruit's calibration guide:
+// https://learn.adafruit.com/adafruit-sensorlab-magnetometer-calibration/magnetic-calibration-with-jupyter
+// https://raw.githubusercontent.com/adafruit/Adafruit_SensorLab/master/notebooks/Mag_Gyro_Calibration.ipynb
+void DumpCompassValuesForCalibration() {
+  sensors_event_t event;
+  compass.getEvent(&event);
+  Serial2.printf("Uni:0,0,0,0,0,0,%d,%d,%d\n", compass.raw.x, compass.raw.y, compass.raw.z);
 }
 
 void DumpLightSensor() {
@@ -140,5 +146,6 @@ void DumpLightSensor() {
 }
 
 void loop() {
-  delay(500);
+  delay(100);
+  DumpCompassHeading();
 }
