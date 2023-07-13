@@ -1,15 +1,23 @@
 #include <Adafruit_LIS2MDL.h>
+#include <Adafruit_LTR329_LTR303.h>
 #include <Arduino.h>
 
 #include <algorithm>
 
 constexpr int kLed = PB4;
+
+// SPI
 constexpr int kMiso = PB2;
 constexpr int kMosi = PA4;
 constexpr int kSck = PB8;
 constexpr uint8_t kCompassCs = PB9;
 
+// I2C
+constexpr int kScl = PA9;
+constexpr int kSda = PA10;
+
 Adafruit_LIS2MDL compass;
+Adafruit_LTR303 light_sensor;
 
 void FatalError() {
   bool on = false;
@@ -52,12 +60,25 @@ void setup() {
   SPI.setSCLK(kSck);
 
   if (!compass.begin_SPI(kCompassCs)) {
-    Serial2.printf("Compass init failed");
+    Serial2.println("Compass init failed");
     FatalError();
   }
   compass.setDataRate(LIS2MDL_RATE_10_HZ);
   compass.setOffsetCancellation(true);
   compass.setLowPassFilter(true);
+
+  // TODO: re-enable when light sensor can be soldered reliably
+  // Wire.setSCL(kScl);
+  // Wire.setSDA(kSda);
+  // Wire.begin();
+  // Wire.setClock(100000);
+  // if (!light_sensor.begin()) {
+  //   Serial2.println("Light sensor init failed");
+  //   FatalError();
+  // }
+  // light_sensor.setGain(LTR3XX_GAIN_1);
+  // light_sensor.setIntegrationTime(LTR3XX_INTEGTIME_400);
+  // light_sensor.setMeasurementRate(LTR3XX_MEASRATE_500);
 }
 
 void DumpCompassMinMax() {
@@ -90,8 +111,8 @@ void DumpCompassHeading() {
   int16_t y = compass.raw.y + 435;
   int16_t z = compass.raw.z + 167;
   float heading = (atan2(y, x) * 180) / 3.141593;
-  float heading = -1 * (atan2(event.magnetic.x,event.magnetic.y) * 180)
-  / 3.141593;
+  // float heading =
+  //     -1 * (atan2(event.magnetic.x, event.magnetic.y) * 180) / 3.141593;
 
   // Normalize to 0-360
   if (heading < 0) {
@@ -101,7 +122,23 @@ void DumpCompassHeading() {
   // Serial2.printf("x:%4d, y:%4d, z:%4d\n", x, y, z);
 }
 
+void DumpLightSensor() {
+  bool valid;
+  uint16_t visible_plus_ir, infrared;
+
+   if (light_sensor.newDataAvailable()) {
+    valid = light_sensor.readBothChannels(visible_plus_ir, infrared);
+    if (valid) {
+      Serial.print("CH0 Visible + IR: ");
+      Serial.print(visible_plus_ir);
+      Serial.print("\t\tCH1 Infrared: ");
+      Serial.println(infrared);
+    } else {
+      Serial.println("Light sensor data invalid");
+    }
+  }
+}
+
 void loop() {
-  DumpCompassHeading();
-  delay(200);
+  delay(500);
 }
