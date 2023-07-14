@@ -1,3 +1,6 @@
+# 1 "/tmp/tmp5qo9ueai"
+#include <Arduino.h>
+# 1 "/home/adam/hardware/gps-tracker/src/gps-tracker.ino"
 #include <Adafruit_LIS2MDL.h>
 #include <Adafruit_LTR329_LTR303.h>
 #include <Arduino.h>
@@ -7,20 +10,30 @@
 
 constexpr int kLed = PB4;
 
-// SPI
+
 constexpr int kMiso = PB2;
 constexpr int kMosi = PA4;
 constexpr int kSck = PB8;
 constexpr uint8_t kCompassCs = PB9;
 
-// I2C
+
 constexpr int kScl = PA9;
 constexpr int kSda = PA10;
 
 Adafruit_LIS2MDL compass;
 Adafruit_LTR303 light_sensor;
 TinyGPSPlus gps;
-
+void FatalError();
+void setup();
+void DumpCompassMinMax();
+void DumpCompassHeading();
+void DumpCompassValuesForCalibration();
+void DumpLightSensor();
+void GetGpsFirmwareVersion();
+void DumpGpsOutput();
+void DumpGpsLocation();
+void loop();
+#line 24 "/home/adam/hardware/gps-tracker/src/gps-tracker.ino"
 void FatalError() {
   bool on = false;
   while (true) {
@@ -31,9 +44,9 @@ void FatalError() {
 }
 
 void setup() {
-  // check if nBOOT_SEL bit is set
+
   if (FLASH->OPTR & FLASH_OPTR_nBOOT_SEL) {
-    // unlock flash/option
+
     FLASH->KEYR = 0x45670123;
     FLASH->KEYR = 0xCDEF89AB;
     FLASH->OPTKEYR = 0x08192A3B;
@@ -42,10 +55,10 @@ void setup() {
     while (FLASH->SR & FLASH_SR_BSY1)
       ;
 
-    // clear nBOOT_SEL bit
+
     FLASH->OPTR &= ~FLASH_OPTR_nBOOT_SEL;
 
-    // write
+
     FLASH->CR |= FLASH_CR_OPTSTRT;
     while (FLASH->SR & FLASH_SR_BSY1)
       ;
@@ -55,7 +68,7 @@ void setup() {
   digitalWrite(kLed, HIGH);
 
   Serial2.begin(115200);
-  // Serial2.printf("Booting...\n");
+
 
   SPI.setMISO(kMiso);
   SPI.setMOSI(kMosi);
@@ -69,20 +82,7 @@ void setup() {
   compass.setDataRate(LIS2MDL_RATE_10_HZ);
   compass.setOffsetCancellation(true);
   compass.setLowPassFilter(true);
-
-  // TODO: re-enable when light sensor can be soldered reliably
-  // Wire.setSCL(kScl);
-  // Wire.setSDA(kSda);
-  // Wire.begin();
-  // Wire.setClock(100000);
-  // if (!light_sensor.begin()) {
-  //   Serial2.println("Light sensor init failed");
-  //   FatalError();
-  // }
-  // light_sensor.setGain(LTR3XX_GAIN_1);
-  // light_sensor.setIntegrationTime(LTR3XX_INTEGTIME_400);
-  // light_sensor.setMeasurementRate(LTR3XX_MEASRATE_500);
-
+# 86 "/home/adam/hardware/gps-tracker/src/gps-tracker.ino"
   Serial3.begin(9600);
 }
 
@@ -117,16 +117,16 @@ void DumpCompassHeading() {
   int16_t z = compass.raw.z + 6 - 19.5;
   float heading = (atan2(y, x) * 180) / 3.141593;
 
-  // Normalize to 0-360
+
   if (heading < 0) {
     heading = 360 + heading;
   }
   Serial2.println(heading);
 }
 
-// For use with the Jupyter notebook in Adafruit's calibration guide:
-// https://learn.adafruit.com/adafruit-sensorlab-magnetometer-calibration/magnetic-calibration-with-jupyter
-// https://raw.githubusercontent.com/adafruit/Adafruit_SensorLab/master/notebooks/Mag_Gyro_Calibration.ipynb
+
+
+
 void DumpCompassValuesForCalibration() {
   sensors_event_t event;
   compass.getEvent(&event);
@@ -153,7 +153,7 @@ void DumpLightSensor() {
 
 void GetGpsFirmwareVersion() {
   Serial3.println("$PQVERNO,R*3F");
-  // TODO: read a response
+
 }
 
 void DumpGpsOutput() {
@@ -164,12 +164,12 @@ void DumpGpsOutput() {
 }
 
 void DumpGpsLocation() {
-  // static const char* location =
-  //     "$GNGGA,010809.000,4002.299834,N,10515.657245,W,2,12,0.84,1612.078,M,-20."
-  //     "609,M,,*7B\n$GNGSA,A,3,02,21,10,32,31,,,,,,,,2.28,0.84,2.12,1*07\n";
-  // for (char const *c = location; *c != 0; c++) {
-  //   gps.encode(*c);
-  // }
+
+
+
+
+
+
 
   while (Serial3.available() > 0) {
     gps.encode(Serial3.read());
@@ -202,10 +202,10 @@ void DumpGpsLocation() {
 uint32_t send_at = 0;
 
 void loop() {
-  // delay(100);
-  // DumpCompassHeading();
+
+
 
   DumpGpsLocation();
-  // DumpGpsOutput();
+
   delay(1000);
 }
