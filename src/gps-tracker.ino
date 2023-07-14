@@ -84,6 +84,11 @@ void setup() {
   // light_sensor.setMeasurementRate(LTR3XX_MEASRATE_500);
 
   Serial3.begin(9600);
+  while (Serial3.available() > 0) {
+    char in = Serial3.read();
+    Serial2.print(in);
+  }
+  Serial2.println();
 }
 
 void DumpCompassMinMax() {
@@ -163,17 +168,58 @@ void DumpGpsOutput() {
   }
 }
 
+uint32_t print_at = 0;
+constexpr uint32_t kPrintEvery = 1000;
+
 void DumpGpsLocation() {
   // static const char* location =
   //     "$GNGGA,010809.000,4002.299834,N,10515.657245,W,2,12,0.84,1612.078,M,-20."
   //     "609,M,,*7B\n$GNGSA,A,3,02,21,10,32,31,,,,,,,,2.28,0.84,2.12,1*07\n";
-  // for (char const *c = location; *c != 0; c++) {
+
+  static const char* location = R"str(
+$GNGLL,4002.299834,N,10515.657245,W,010808.000,A,D*5D
+$GPTXT,01,01,02,ANTSTATUS=OPEN*2B
+$GNRMC,010809.000,A,4002.299834,N,10515.657245,W,0.00,347.93,140723,,,D,V*18
+$GNVTG,347.93,T,,M,0.00,N,0.00,K,D*2C
+$GNGGA,010809.000,4002.299834,N,10515.657245,W,2,12,0.84,1612.078,M,-20.609,M,,*7B
+$GNGSA,A,3,02,21,10,32,31,,,,,,,,2.28,0.84,2.12,1*07
+$GNGSA,A,3,66,65,75,81,76,67,82,,,,,,2.28,0.84,2.12,2*05
+$GPGSV,3,1,09,32,59,042,48,21,47,266,43,02,44,280,40,31,41,192,31,1*6E
+$GPGSV,3,2,09,10,39,115,37,46,37,214,34,25,19,083,,03,09,306,,1*6B
+$GPGSV,3,3,09,26,01,166,,1*59
+$GLGSV,3,1,10,66,55,340,40,76,38,131,28,65,37,065,31,75,36,055,39,1*70
+$GLGSV,3,2,10,81,36,253,34,82,29,312,30,67,17,290,29,88,10,203,,1*72
+$GLGSV,3,3,10,77,08,170,,83,02,346,,1*7F
+$GNGLL,4002.299834,N,10515.657245,W,010809.000,A,D*5C
+$GPTXT,01,01,02,ANTSTATUS=OPEN*2B
+$GNRMC,010810.000,A,4002.299834,N,10515.657245,W,0.00,347.93,140723,,,D,V*10
+$GNVTG,347.93,T,,M,0.00,N,0.00,K,D*2C
+$GNGGA,010810.000,4002.299834,N,10515.657245,W,2,12,0.84,1612.078,M,-20.609,M,,*73
+$GNGSA,A,3,02,21,10,32,31,,,,,,,,2.28,0.84,2.12,1*07
+$GNGSA,A,3,66,65,75,81,76,67,82,,,,,,2.28,0.84,2.12,2*05
+$GPGSV,3,1,09,32,59,042,48,21,47,266,43,02,44,280,40,31,41,192,30,1*6F
+$GPGSV,3,2,09,10,39,115,37,46,37,214,34,25,19,083,,03,09,306,,1*6B
+$GPGSV,3,3,09,26,01,166,,1*59
+$GLGSV,3,1,10,66,55,340,40,76,38,131,29,65,37,065,31,75,36,055,39,1*71
+$GLGSV,3,2,10,81,36,253,34,82,29,312,30,67,17,290,29,88,10,203,,1*72
+)str";
+  // for (char const* c = location; *c != 0; c++) {
   //   gps.encode(*c);
   // }
 
+  // Serial2.print("Read: ");
   while (Serial3.available() > 0) {
-    gps.encode(Serial3.read());
+    char in = Serial3.read();
+    gps.encode(in);
+    // Serial2.print(in);
+    // Serial2.print(" ");
   }
+  // Serial2.println("");
+
+  if (millis() < print_at) {
+    return;
+  }
+  print_at = millis() + kPrintEvery;
 
   Serial2.printf(
       "GPS comms:  with_fix=%d, chars=%d, checksum_failed=%d, "
@@ -207,5 +253,5 @@ void loop() {
 
   DumpGpsLocation();
   // DumpGpsOutput();
-  delay(1000);
+  // delay(1000);
 }
