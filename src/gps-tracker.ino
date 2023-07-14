@@ -61,6 +61,7 @@ void setup() {
   SPI.setMOSI(kMosi);
   SPI.setSCLK(kSck);
 
+  delay(100);
   if (!compass.begin_SPI(kCompassCs)) {
     Serial2.println("Compass init failed");
     FatalError();
@@ -83,7 +84,6 @@ void setup() {
   // light_sensor.setMeasurementRate(LTR3XX_MEASRATE_500);
 
   Serial3.begin(9600);
-  delay(1000);
 }
 
 void DumpCompassMinMax() {
@@ -168,10 +168,13 @@ void DumpGpsLocation() {
     gps.encode(Serial3.read());
   }
 
+  Serial2.printf("GPS comms:  checksum_failed=%5d, checksum_passed=%5d\n",
+                 gps.failedChecksum(), gps.passedChecksum());
+
   if (gps.satellites.isValid()) {
     Serial2.printf("Found %d satellites\n", gps.satellites.value());
   } else {
-    Serial2.println("Found no satellites\n");
+    Serial2.println("Found no satellites");
   }
 
   if (gps.location.isValid()) {
@@ -191,5 +194,6 @@ void loop() {
   // DumpCompassHeading();
 
   DumpGpsLocation();
+  // DumpGpsOutput();
   delay(1000);
 }
