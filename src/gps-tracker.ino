@@ -1,6 +1,7 @@
 #include <Adafruit_LIS2MDL.h>
 #include <Adafruit_LTR329_LTR303.h>
 #include <Arduino.h>
+#include <RadioLib.h>
 #include <TinyGPSPlus.h>
 
 #include <algorithm>
@@ -11,7 +12,12 @@ constexpr int kLed = PB4;
 constexpr int kMiso = PB2;
 constexpr int kMosi = PA4;
 constexpr int kSck = PB8;
-constexpr uint8_t kCompassCs = PB9;
+constexpr int kCompassCs = PB9;
+
+constexpr int kRadioCs = PA15;
+constexpr int kRadioDio0 = PB6;
+constexpr int kRadioBusy = PB7;
+constexpr int kRadioRxen = PC6;
 
 // I2C
 constexpr int kScl = PA9;
@@ -20,6 +26,10 @@ constexpr int kSda = PA10;
 Adafruit_LIS2MDL compass;
 Adafruit_LTR303 light_sensor;
 TinyGPSPlus gps;
+
+SPISettings radio_spi_settings(10 * 1000 * 1000, MSBFIRST, SPI_MODE0);
+SX1262 radio = new Module(kRadioCs, kRadioDio0, /*rst=*/RADIOLIB_NC,
+                          /*gpio=*/RADIOLIB_NC, SPI, radio_spi_settings);
 
 void FatalError() {
   bool on = false;
@@ -105,7 +115,7 @@ void setup() {
   digitalWrite(kLed, HIGH);
 
   Serial2.begin(115200);
-  // Serial2.printf("Booting...\n");
+  Serial2.printf("Booting...\n");
 
   SPI.setMISO(kMiso);
   SPI.setMOSI(kMosi);
@@ -133,22 +143,34 @@ void setup() {
   // light_sensor.setIntegrationTime(LTR3XX_INTEGTIME_400);
   // light_sensor.setMeasurementRate(LTR3XX_MEASRATE_500);
 
+  // Configure GPS
   Serial3.begin(9600);
-  Serial2.println("Read: ");
-  while (Serial3.available()) {
-    char in = Serial3.read();
-    Serial2.print(in);
-  }
-  Serial2.println("\n\nConfiguring...");
+  // Serial2.println("Read: ");
+  // while (Serial3.available()) {
+  //   char in = Serial3.read();
+  //   Serial2.print(in);
+  // }
+  // Serial2.println("\n\nConfiguring...");
   ConfigureGps();
 
-  while (millis() < 2000) {
-    while (Serial3.available()) {
-      char in = Serial3.read();
-      Serial2.print(in);
-    }
+  // while (millis() < 2000) {
+  //   while (Serial3.available()) {
+  //     char in = Serial3.read();
+  //     Serial2.print(in);
+  //   }
+  // }
+  // Serial2.println();
+
+  // Configure radio
+  Serial2.print("Initializing radio... ");
+  int state = radio.begin();
+  if (state == RADIOLIB_ERR_NONE) {
+    Serial2.println("success.");
+  } else {
+    Serial2.print("failed, code ");
+    Serial2.println(state);
+    FatalError();
   }
-  Serial2.println();
 }
 
 void DumpCompassMinMax() {
@@ -275,6 +297,6 @@ $GNGGA,010809.000,4002.299834,N,10515.657245,W,2,12,0.84,1612.078,M,-20.609,M,,*
 
 void loop() {
   // DumpGpsLocation();
-  DumpGpsOutput();
+  // DumpGpsOutput();
   // delay(1000);
 }
