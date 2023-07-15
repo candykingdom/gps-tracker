@@ -1,5 +1,7 @@
+#include <Adafruit_GFX.h>  // Core graphics library
 #include <Adafruit_LIS2MDL.h>
 #include <Adafruit_LTR329_LTR303.h>
+#include <Adafruit_ST7789.h>  // Hardware-specific library for ST7789
 #include <Arduino.h>
 #include <RadioLib.h>
 #include <TinyGPSPlus.h>
@@ -14,10 +16,18 @@ constexpr int kMosi = PA4;
 constexpr int kSck = PB8;
 constexpr int kCompassCs = PB9;
 
+// Radio
 constexpr int kRadioCs = PA15;
 constexpr int kRadioDio1 = PB6;
 constexpr int kRadioBusy = PB7;
 constexpr int kRadioRxen = PC6;
+
+// Screen
+constexpr int kScreenDc = PA11;
+constexpr int kScreenCs = PA12;
+constexpr int kScreenBlk = PA7;
+constexpr int kScreenReset = PA8;
+Adafruit_ST7789 screen = Adafruit_ST7789(kScreenCs, kScreenDc, kScreenReset);
 
 // I2C
 constexpr int kScl = PA9;
@@ -96,6 +106,12 @@ void ConfigureGps() {
   // TODO: enter GLP (adaptive low-power) mode
 }
 
+void ConfigureScreen() {
+  screen.init(/*width=*/240, /*height=*/320);
+  screen.setSPISpeed(20 * 1000 * 1000);
+  screen.fillScreen(ST77XX_BLACK);
+}
+
 void setup() {
   // check if nBOOT_SEL bit is set
   if (FLASH->OPTR & FLASH_OPTR_nBOOT_SEL) {
@@ -119,8 +135,8 @@ void setup() {
 
   pinMode(kLed, OUTPUT);
   // digitalWrite(kLed, HIGH);
-
-  // pinMode(kRadioBusy, INPUT);
+  pinMode(kScreenBlk, OUTPUT);
+  digitalWrite(kScreenBlk, HIGH);
 
   Serial2.begin(115200);
   Serial2.printf("Booting...\n");
@@ -179,6 +195,8 @@ void setup() {
   radio.setOutputPower(0);
 
   // digitalWrite(kLed, LOW);
+
+  ConfigureScreen();
 }
 
 void DumpCompassMinMax() {
@@ -318,29 +336,39 @@ void loop() {
   //   Serial2.println(state);
   //   delay(500);
   // }
-  if (radio_idle || millis() > print_at) {
-    Serial2.printf("Transmitting... (%d)\n", radio_idle);
-    radio_idle = false;
-    // static constexpr uint32_t kSize = 8;
-    // static const char message[kSize] = "12345678";
-    // int state = radio.transmit("test message");
-    int state = radio.startTransmit("test message");
-    Serial2.printf("Radio status: %u\n", radio.getStatus());
-    if (state == RADIOLIB_ERR_NONE) {
-      Serial2.println("Radio transmit success!");
-    } else {
-      Serial2.printf("Radio transmit failed, code: %d\n", state);
-    }
-    digitalWrite(kLed, HIGH);
-    delay(10);
-    digitalWrite(kLed, LOW);
-    delay(10);
-    Serial2.printf("Radio status: %u\n", radio.getStatus());
-  }
+  // if (radio_idle || millis() > print_at) {
+  //   Serial2.printf("Transmitting... (%d)\n", radio_idle);
+  //   radio_idle = false;
+  //   // static constexpr uint32_t kSize = 8;
+  //   // static const char message[kSize] = "12345678";
+  //   // int state = radio.transmit("test message");
+  //   int state = radio.startTransmit("test message");
+  //   Serial2.printf("Radio status: %u\n", radio.getStatus());
+  //   if (state == RADIOLIB_ERR_NONE) {
+  //     Serial2.println("Radio transmit success!");
+  //   } else {
+  //     Serial2.printf("Radio transmit failed, code: %d\n", state);
+  //   }
+  //   digitalWrite(kLed, HIGH);
+  //   delay(10);
+  //   digitalWrite(kLed, LOW);
+  //   delay(10);
+  //   Serial2.printf("Radio status: %u\n", radio.getStatus());
+  // }
   // radio.startReceive();
 
   if (millis() > print_at) {
     Serial2.println(millis());
+
+    // screen.fillScreen(ST77XX_BLACK);
+    screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/100, /*h=*/20, ST77XX_BLACK);
+    screen.setTextSize(2);
+    screen.setTextWrap(false);
+
+    screen.setCursor(0, 0);
+    screen.setTextColor(ST77XX_WHITE);
+    screen.printf("%6u", millis() % 10000);
+
     print_at = millis() + kPrintEvery;
   }
 
