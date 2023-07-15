@@ -145,21 +145,7 @@ void setup() {
 
   // Configure GPS
   Serial3.begin(9600);
-  // Serial2.println("Read: ");
-  // while (Serial3.available()) {
-  //   char in = Serial3.read();
-  //   Serial2.print(in);
-  // }
-  // Serial2.println("\n\nConfiguring...");
   ConfigureGps();
-
-  // while (millis() < 2000) {
-  //   while (Serial3.available()) {
-  //     char in = Serial3.read();
-  //     Serial2.print(in);
-  //   }
-  // }
-  // Serial2.println();
 
   // Configure radio
   Serial2.print("Initializing radio... ");
