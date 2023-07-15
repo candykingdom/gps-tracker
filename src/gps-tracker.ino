@@ -15,7 +15,7 @@ constexpr int kSck = PB8;
 constexpr int kCompassCs = PB9;
 
 constexpr int kRadioCs = PA15;
-constexpr int kRadioDio0 = PB6;
+constexpr int kRadioDio1 = PB6;
 constexpr int kRadioBusy = PB7;
 constexpr int kRadioRxen = PC6;
 
@@ -28,8 +28,14 @@ Adafruit_LTR303 light_sensor;
 TinyGPSPlus gps;
 
 SPISettings radio_spi_settings(10 * 1000 * 1000, MSBFIRST, SPI_MODE0);
-SX1262 radio = new Module(kRadioCs, kRadioDio0, /*rst=*/RADIOLIB_NC,
-                          /*gpio=*/RADIOLIB_NC, SPI, radio_spi_settings);
+SX1262 radio = new Module(kRadioCs, kRadioDio1, /*rst=*/RADIOLIB_NC,
+                          /*gpio=*/kRadioBusy, SPI, radio_spi_settings);
+volatile bool radio_idle = true;
+
+void SetRadioIdle(void) {
+  radio_idle = true;
+  digitalWrite(kLed, HIGH);
+}
 
 void FatalError() {
   bool on = false;
@@ -112,7 +118,9 @@ void setup() {
   }
 
   pinMode(kLed, OUTPUT);
-  digitalWrite(kLed, HIGH);
+  // digitalWrite(kLed, HIGH);
+
+  // pinMode(kRadioBusy, INPUT);
 
   Serial2.begin(115200);
   Serial2.printf("Booting...\n");
@@ -157,6 +165,20 @@ void setup() {
     Serial2.println(state);
     FatalError();
   }
+  radio.setDio1Action(SetRadioIdle);
+  state = radio.setDio2AsRfSwitch(true);
+  if (state != RADIOLIB_ERR_NONE) {
+    Serial2.printf("`radio.setDio2AsRfSwitch` failed: %d\n");
+  }
+
+  state = radio.setFrequency(915.0);
+  if (state != RADIOLIB_ERR_NONE) {
+    Serial2.printf("`radio.setFrequency` failed: %d\n");
+  }
+
+  radio.setOutputPower(0);
+
+  // digitalWrite(kLed, LOW);
 }
 
 void DumpCompassMinMax() {
@@ -236,9 +258,6 @@ void DumpGpsOutput() {
   }
 }
 
-uint32_t print_at = 0;
-constexpr uint32_t kPrintEvery = 1000;
-
 void DumpGpsLocation() {
   static const char* location = R"str(
 $GNGGA,010809.000,4002.299834,N,10515.657245,W,2,12,0.84,1612.078,M,-20.609,M,,*7B
@@ -246,6 +265,9 @@ $GNGGA,010809.000,4002.299834,N,10515.657245,W,2,12,0.84,1612.078,M,-20.609,M,,*
   // for (char const* c = location; *c != 0; c++) {
   //   gps.encode(*c);
   // }
+
+  static uint32_t print_at = 0;
+  static constexpr uint32_t kPrintEvery = 1000;
 
   while (Serial3.available() > 0) {
     char in = Serial3.read();
@@ -281,8 +303,46 @@ $GNGGA,010809.000,4002.299834,N,10515.657245,W,2,12,0.84,1612.078,M,-20.609,M,,*
   Serial2.println();
 }
 
+uint32_t print_at = 0;
+constexpr uint32_t kPrintEvery = 1000;
+
 void loop() {
   // DumpGpsLocation();
   // DumpGpsOutput();
   // delay(1000);
+  // int state = radio.startReceive();
+  // if (state == RADIOLIB_ERR_NONE) {
+  //   Serial2.println("Radio receive success!");
+  // } else {
+  //   Serial2.print("Radio receive failed, code ");
+  //   Serial2.println(state);
+  //   delay(500);
+  // }
+  if (radio_idle || millis() > print_at) {
+    Serial2.printf("Transmitting... (%d)\n", radio_idle);
+    radio_idle = false;
+    // static constexpr uint32_t kSize = 8;
+    // static const char message[kSize] = "12345678";
+    // int state = radio.transmit("test message");
+    int state = radio.startTransmit("test message");
+    Serial2.printf("Radio status: %u\n", radio.getStatus());
+    if (state == RADIOLIB_ERR_NONE) {
+      Serial2.println("Radio transmit success!");
+    } else {
+      Serial2.printf("Radio transmit failed, code: %d\n", state);
+    }
+    digitalWrite(kLed, HIGH);
+    delay(10);
+    digitalWrite(kLed, LOW);
+    delay(10);
+    Serial2.printf("Radio status: %u\n", radio.getStatus());
+  }
+  // radio.startReceive();
+
+  if (millis() > print_at) {
+    Serial2.println(millis());
+    print_at = millis() + kPrintEvery;
+  }
+
+  delay(10);
 }
