@@ -224,13 +224,17 @@ void DumpCompassMinMax() {
                  z_min, z_max);
 }
 
-float GetCompassHeading() {
+float GetCompassHeadingRadians() {
   sensors_event_t event;
   compass.getEvent(&event);
-  int16_t x = compass.raw.x - 147 + 297;
-  int16_t y = compass.raw.y - 76.5 + 151.0;
-  int16_t z = compass.raw.z + 6 - 19.5;
-  float heading = (atan2(y, x) * 180) / 3.141593;
+  int16_t x = compass.raw.x + 173;
+  int16_t y = compass.raw.y + 210;
+  int16_t z = compass.raw.z - 89;
+  return atan2(y, x);
+}
+
+float RadiansToDegrees(float radians) {
+  float heading = (radians * 180) / 3.141593;
 
   // Normalize to 0-360
   if (heading < 0) {
@@ -240,7 +244,9 @@ float GetCompassHeading() {
   return heading;
 }
 
-void DumpCompassHeading() { Serial2.println(GetCompassHeading()); }
+void DumpCompassHeading() {
+  Serial2.println(RadiansToDegrees(GetCompassHeadingRadians()));
+}
 
 // For use with the Jupyter notebook in Adafruit's calibration guide:
 // https://learn.adafruit.com/adafruit-sensorlab-magnetometer-calibration/magnetic-calibration-with-jupyter
@@ -339,6 +345,10 @@ int16_t compass_y = 0;
 float heading = 0;
 
 void loop() {
+  // DumpCompassValuesForCalibration();
+  // delay(101);
+  // return;
+
   // DumpGpsLocation();
   // DumpGpsOutput();
   // delay(1000);
@@ -389,18 +399,19 @@ void loop() {
   if (millis() > screen_update_at) {
     static constexpr float kCircleRadius = 100;
 
-    screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y, ST77XX_BLACK);
+    screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y,
+                    ST77XX_BLACK);
 
-    heading = GetCompassHeading();
-    float heading_radians = heading / 180.0 * 3.14159;
-    compass_x = kCompassCenterX + kCircleRadius * cos(heading_radians);
-    compass_y = kCompassCenterY + kCircleRadius * sin(heading_radians);
-    screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y, ST77XX_WHITE);
+    heading = GetCompassHeadingRadians();
+    compass_x = kCompassCenterX + kCircleRadius * cos(2 * 3.141593 - heading);
+    compass_y = kCompassCenterY + kCircleRadius * sin(2 * 3.141593 - heading);
+    screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y,
+                    ST77XX_WHITE);
 
     screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/50, /*h=*/15, ST77XX_BLACK);
     screen.setCursor(0, 0);
     screen.setTextColor(ST77XX_WHITE);
-    screen.printf("%3d", (int16_t)heading);
+    screen.printf("%3d", (int16_t)RadiansToDegrees(heading));
 
     screen_update_at = millis() + kScreenUpdateEvery;
   }
