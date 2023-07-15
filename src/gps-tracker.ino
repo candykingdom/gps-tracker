@@ -258,6 +258,24 @@ void DumpCompassValuesForCalibration() {
                  compass.raw.z);
 }
 
+void DisplayCompass() {
+    static constexpr float kCircleRadius = 100;
+
+    screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y,
+                    ST77XX_BLACK);
+
+    heading = GetCompassHeadingRadians();
+    compass_x = kCompassCenterX + kCircleRadius * cos(2 * 3.141593 - heading);
+    compass_y = kCompassCenterY + kCircleRadius * sin(2 * 3.141593 - heading);
+    screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y,
+                    ST77XX_WHITE);
+
+    screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/50, /*h=*/15, ST77XX_BLACK);
+    screen.setCursor(0, 0);
+    screen.setTextColor(ST77XX_WHITE);
+    screen.printf("%3d", (int16_t)RadiansToDegrees(heading));
+}
+
 void DumpLightSensor() {
   bool valid;
   uint16_t visible_plus_ir, infrared;
@@ -383,36 +401,11 @@ void loop() {
 
   if (millis() > print_at) {
     Serial2.println(millis());
-
-    // screen.fillScreen(ST77XX_BLACK);
-    // screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/100, /*h=*/20, ST77XX_BLACK);
-    // screen.setTextSize(2);
-    // screen.setTextWrap(false);
-
-    // screen.setCursor(0, 0);
-    // screen.setTextColor(ST77XX_WHITE);
-    // screen.printf("%6u", millis() % 10000);
-
     print_at = millis() + kPrintEvery;
   }
 
   if (millis() > screen_update_at) {
-    static constexpr float kCircleRadius = 100;
-
-    screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y,
-                    ST77XX_BLACK);
-
-    heading = GetCompassHeadingRadians();
-    compass_x = kCompassCenterX + kCircleRadius * cos(2 * 3.141593 - heading);
-    compass_y = kCompassCenterY + kCircleRadius * sin(2 * 3.141593 - heading);
-    screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y,
-                    ST77XX_WHITE);
-
-    screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/50, /*h=*/15, ST77XX_BLACK);
-    screen.setCursor(0, 0);
-    screen.setTextColor(ST77XX_WHITE);
-    screen.printf("%3d", (int16_t)RadiansToDegrees(heading));
-
+    DisplayCompass();
     screen_update_at = millis() + kScreenUpdateEvery;
   }
 }
