@@ -110,6 +110,8 @@ void ConfigureScreen() {
   screen.init(/*width=*/240, /*height=*/320);
   screen.setSPISpeed(20 * 1000 * 1000);
   screen.fillScreen(ST77XX_BLACK);
+  screen.setTextSize(2);
+  screen.setTextWrap(false);
 }
 
 void setup() {
@@ -222,7 +224,7 @@ void DumpCompassMinMax() {
                  z_min, z_max);
 }
 
-void DumpCompassHeading() {
+float GetCompassHeading() {
   sensors_event_t event;
   compass.getEvent(&event);
   int16_t x = compass.raw.x - 147 + 297;
@@ -234,8 +236,11 @@ void DumpCompassHeading() {
   if (heading < 0) {
     heading = 360 + heading;
   }
-  Serial2.println(heading);
+
+  return heading;
 }
+
+void DumpCompassHeading() { Serial2.println(GetCompassHeading()); }
 
 // For use with the Jupyter notebook in Adafruit's calibration guide:
 // https://learn.adafruit.com/adafruit-sensorlab-magnetometer-calibration/magnetic-calibration-with-jupyter
@@ -324,6 +329,15 @@ $GNGGA,010809.000,4002.299834,N,10515.657245,W,2,12,0.84,1612.078,M,-20.609,M,,*
 uint32_t print_at = 0;
 constexpr uint32_t kPrintEvery = 1000;
 
+uint32_t screen_update_at = 0;
+constexpr uint32_t kScreenUpdateEvery = 100;
+constexpr int16_t kCompassCenterX = 120;
+constexpr int16_t kCompassCenterY = 160;
+int16_t compass_x = 0;
+int16_t compass_y = 0;
+
+float heading = 0;
+
 void loop() {
   // DumpGpsLocation();
   // DumpGpsOutput();
@@ -361,16 +375,33 @@ void loop() {
     Serial2.println(millis());
 
     // screen.fillScreen(ST77XX_BLACK);
-    screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/100, /*h=*/20, ST77XX_BLACK);
-    screen.setTextSize(2);
-    screen.setTextWrap(false);
+    // screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/100, /*h=*/20, ST77XX_BLACK);
+    // screen.setTextSize(2);
+    // screen.setTextWrap(false);
 
-    screen.setCursor(0, 0);
-    screen.setTextColor(ST77XX_WHITE);
-    screen.printf("%6u", millis() % 10000);
+    // screen.setCursor(0, 0);
+    // screen.setTextColor(ST77XX_WHITE);
+    // screen.printf("%6u", millis() % 10000);
 
     print_at = millis() + kPrintEvery;
   }
 
-  delay(10);
+  if (millis() > screen_update_at) {
+    static constexpr float kCircleRadius = 100;
+
+    screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y, ST77XX_BLACK);
+
+    heading = GetCompassHeading();
+    float heading_radians = heading / 180.0 * 3.14159;
+    compass_x = kCompassCenterX + kCircleRadius * cos(heading_radians);
+    compass_y = kCompassCenterY + kCircleRadius * sin(heading_radians);
+    screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y, ST77XX_WHITE);
+
+    screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/50, /*h=*/15, ST77XX_BLACK);
+    screen.setCursor(0, 0);
+    screen.setTextColor(ST77XX_WHITE);
+    screen.printf("%3d", (int16_t)heading);
+
+    screen_update_at = millis() + kScreenUpdateEvery;
+  }
 }
