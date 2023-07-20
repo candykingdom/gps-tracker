@@ -38,13 +38,14 @@ Adafruit_LTR303 light_sensor;
 TinyGPSPlus gps;
 
 SPISettings radio_spi_settings(10 * 1000 * 1000, MSBFIRST, SPI_MODE0);
-SX1262 radio = new Module(kRadioCs, kRadioDio1, /*rst=*/RADIOLIB_NC,
+// SX1262 radio = new Module(kRadioCs, kRadioDio1, /*rst=*/RADIOLIB_NC,
+SX1261 radio = new Module(kRadioCs, kRadioDio1, /*rst=*/RADIOLIB_NC,
                           /*gpio=*/kRadioBusy, SPI, radio_spi_settings);
 volatile bool radio_idle = true;
 
 void SetRadioIdle(void) {
   radio_idle = true;
-  digitalWrite(kLed, HIGH);
+  // digitalWrite(kLed, LOW);
 }
 
 void FatalError() {
@@ -140,6 +141,9 @@ void setup() {
   pinMode(kScreenBlk, OUTPUT);
   digitalWrite(kScreenBlk, HIGH);
 
+  pinMode(kRadioRxen, OUTPUT);
+  digitalWrite(kRadioRxen, LOW);
+
   Serial2.begin(115200);
   Serial2.printf("Booting...\n");
 
@@ -148,13 +152,13 @@ void setup() {
   SPI.setSCLK(kSck);
 
   delay(100);
-  if (!compass.begin_SPI(kCompassCs)) {
-    Serial2.println("Compass init failed");
-    FatalError();
-  }
-  compass.setDataRate(LIS2MDL_RATE_10_HZ);
-  compass.setOffsetCancellation(true);
-  compass.setLowPassFilter(true);
+  // if (!compass.begin_SPI(kCompassCs)) {
+  //   Serial2.println("Compass init failed");
+  //   FatalError();
+  // }
+  // compass.setDataRate(LIS2MDL_RATE_10_HZ);
+  // compass.setOffsetCancellation(true);
+  // compass.setLowPassFilter(true);
 
   // TODO: re-enable when light sensor can be soldered reliably
   // Wire.setSCL(kScl);
@@ -175,7 +179,9 @@ void setup() {
 
   // Configure radio
   Serial2.print("Initializing radio... ");
-  int state = radio.begin();
+  int state = radio.begin(/*freq=*/915.0, /*bw*/ 125.0, /*sf=*/9, /*cr=*/7,
+                          /*syncWord=*/18, /*power=*/0, /*preambleLength=*/8,
+                          /*txcoVoltage=*/1.8, /*useRegulatorLdo=*/false);
   if (state == RADIOLIB_ERR_NONE) {
     Serial2.println("success.");
   } else {
@@ -184,17 +190,12 @@ void setup() {
     FatalError();
   }
   radio.setDio1Action(SetRadioIdle);
+  // radio.setRfSwitchPins(kRadioRxen, RADIOLIB_NC);
   state = radio.setDio2AsRfSwitch(true);
   if (state != RADIOLIB_ERR_NONE) {
     Serial2.printf("`radio.setDio2AsRfSwitch` failed: %d\n");
   }
-
-  state = radio.setFrequency(915.0);
-  if (state != RADIOLIB_ERR_NONE) {
-    Serial2.printf("`radio.setFrequency` failed: %d\n");
-  }
-
-  radio.setOutputPower(0);
+  radio.startReceive();
 
   // digitalWrite(kLed, LOW);
 
@@ -259,21 +260,26 @@ void DumpCompassValuesForCalibration() {
 }
 
 void DisplayCompass() {
-    static constexpr float kCircleRadius = 100;
+  static constexpr float kCircleRadius = 100;
+  static constexpr int16_t kCompassCenterX = 120;
+  static constexpr int16_t kCompassCenterY = 160;
+  static int16_t compass_x = 0;
+  static int16_t compass_y = 0;
+  static float heading = 0;
 
-    screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y,
-                    ST77XX_BLACK);
+  screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y,
+                  ST77XX_BLACK);
 
-    heading = GetCompassHeadingRadians();
-    compass_x = kCompassCenterX + kCircleRadius * cos(2 * 3.141593 - heading);
-    compass_y = kCompassCenterY + kCircleRadius * sin(2 * 3.141593 - heading);
-    screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y,
-                    ST77XX_WHITE);
+  heading = GetCompassHeadingRadians();
+  compass_x = kCompassCenterX + kCircleRadius * cos(2 * 3.141593 - heading);
+  compass_y = kCompassCenterY + kCircleRadius * sin(2 * 3.141593 - heading);
+  screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y,
+                  ST77XX_WHITE);
 
-    screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/50, /*h=*/15, ST77XX_BLACK);
-    screen.setCursor(0, 0);
-    screen.setTextColor(ST77XX_WHITE);
-    screen.printf("%3d", (int16_t)RadiansToDegrees(heading));
+  screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/50, /*h=*/15, ST77XX_BLACK);
+  screen.setCursor(0, 0);
+  screen.setTextColor(ST77XX_WHITE);
+  screen.printf("%3d", (int16_t)RadiansToDegrees(heading));
 }
 
 void DumpLightSensor() {
@@ -283,12 +289,12 @@ void DumpLightSensor() {
   if (light_sensor.newDataAvailable()) {
     valid = light_sensor.readBothChannels(visible_plus_ir, infrared);
     if (valid) {
-      Serial.print("CH0 Visible + IR: ");
-      Serial.print(visible_plus_ir);
-      Serial.print("\t\tCH1 Infrared: ");
-      Serial.println(infrared);
+      Serial2.print("CH0 Visible + IR: ");
+      Serial2.print(visible_plus_ir);
+      Serial2.print("\t\tCH1 Infrared: ");
+      Serial2.println(infrared);
     } else {
-      Serial.println("Light sensor data invalid");
+      Serial2.println("Light sensor data invalid");
     }
   }
 }
@@ -354,15 +360,32 @@ uint32_t print_at = 0;
 constexpr uint32_t kPrintEvery = 1000;
 
 uint32_t screen_update_at = 0;
-constexpr uint32_t kScreenUpdateEvery = 100;
-constexpr int16_t kCompassCenterX = 120;
-constexpr int16_t kCompassCenterY = 160;
-int16_t compass_x = 0;
-int16_t compass_y = 0;
+constexpr uint32_t kScreenUpdateEvery = 500;
 
-float heading = 0;
+uint32_t received_packet_at = 0;
+uint32_t force_send_packet_at = 4000;
+int16_t last_rssi = 0;
+int16_t last_snr = 0;
+
+void Transmit() {
+  Serial2.printf("Transmitting... (%d)\n", radio_idle);
+  digitalWrite(kRadioRxen, LOW);
+  delay(1);
+  int state = radio.startTransmit("test message");
+  if (state == RADIOLIB_ERR_NONE) {
+    Serial2.println("Radio transmit success!");
+  } else {
+    Serial2.printf("Radio transmit failed, code: %d\n", state);
+  }
+  digitalWrite(kRadioRxen, HIGH);
+  delay(1);
+}
+
+constexpr float kLatitude = 0;
+constexpr float kLongitude = 0;
 
 void loop() {
+  static bool last_op_transmit = false;
   // DumpCompassValuesForCalibration();
   // delay(101);
   // return;
@@ -370,6 +393,7 @@ void loop() {
   // DumpGpsLocation();
   // DumpGpsOutput();
   // delay(1000);
+
   // int state = radio.startReceive();
   // if (state == RADIOLIB_ERR_NONE) {
   //   Serial2.println("Radio receive success!");
@@ -378,34 +402,68 @@ void loop() {
   //   Serial2.println(state);
   //   delay(500);
   // }
-  // if (radio_idle || millis() > print_at) {
-  //   Serial2.printf("Transmitting... (%d)\n", radio_idle);
-  //   radio_idle = false;
-  //   // static constexpr uint32_t kSize = 8;
-  //   // static const char message[kSize] = "12345678";
-  //   // int state = radio.transmit("test message");
-  //   int state = radio.startTransmit("test message");
-  //   Serial2.printf("Radio status: %u\n", radio.getStatus());
-  //   if (state == RADIOLIB_ERR_NONE) {
-  //     Serial2.println("Radio transmit success!");
-  //   } else {
-  //     Serial2.printf("Radio transmit failed, code: %d\n", state);
-  //   }
-  //   digitalWrite(kLed, HIGH);
-  //   delay(10);
-  //   digitalWrite(kLed, LOW);
-  //   delay(10);
-  //   Serial2.printf("Radio status: %u\n", radio.getStatus());
-  // }
-  // radio.startReceive();
+
+  while (Serial3.available() > 0) {
+    char in = Serial3.read();
+    gps.encode(in);
+  }
+
+  if (millis() > 3000 && radio_idle) {
+    radio_idle = false;
+    if (last_op_transmit) {
+      Serial2.println("Starting receive");
+      last_op_transmit = false;
+      radio.startReceive();
+    } else {
+      // We received a packet
+      received_packet_at = millis();
+      String received;
+      int state = radio.readData(received);
+      if (state == RADIOLIB_ERR_NONE) {
+        Serial2.print("*** Received: ");
+        Serial2.println(received);
+        digitalWrite(kLed, HIGH);
+        delay(10);
+        digitalWrite(kLed, LOW);
+        delay(10);
+      }
+      last_rssi = radio.getRSSI();
+      last_snr = radio.getSNR();
+      radio.standby();
+      last_op_transmit = true;
+      Transmit();
+    }
+  }
+
+  if (!last_op_transmit && millis() > force_send_packet_at) {
+    force_send_packet_at = millis() + 500;
+    radio.standby();
+    last_op_transmit = true;
+    Transmit();
+  }
 
   if (millis() > print_at) {
     Serial2.println(millis());
     print_at = millis() + kPrintEvery;
   }
 
+  digitalWrite(kLed, (millis() / 100) % 25 == 0);
+
   if (millis() > screen_update_at) {
-    DisplayCompass();
+    // DisplayCompass();
+
+    screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/120, /*h=*/64, ST77XX_BLACK);
+    screen.setCursor(0, 0);
+    screen.setTextColor(ST77XX_WHITE);
+    screen.printf("Up: %6u\n", millis() - received_packet_at);
+    screen.printf("RSSI: %4d\n", last_rssi);
+    screen.printf("SNR:  %4d\n", last_snr);
+    if (gps.location.isValid()) {
+      screen.printf("Dis: %5d",
+                    (int32_t) gps.distanceBetween(gps.location.lat(), gps.location.lng(),
+                                        kLatitude, kLongitude));
+    }
+
     screen_update_at = millis() + kScreenUpdateEvery;
   }
 }
