@@ -56,11 +56,13 @@
         }
       ],
       "drc_exclusions": [
-        "clearance|147953500|88506500|6645b753-00df-4d42-ad96-53783ffaf913|e877dd74-49d3-44a3-b666-84c58e44c902",
-        "clearance|148146500|87006500|980ef932-138e-4b0f-ba85-e8b459c2feac|2b5f68a9-df7a-4569-8246-788c04009dc9",
-        "clearance|148933500|87006500|c82ba8b4-8104-4ac1-a76c-f39b4411f5e0|d0e25e97-0094-495e-9c99-cd1e4c941c5f",
-        "clearance|148933500|88506500|617a04e5-0130-48d4-9099-36ef79be8e38|bc7c0277-014e-4f01-af16-3d3630a647a2",
-        "courtyards_overlap|117340001|64770001|df8f6a37-29fe-4e83-b7d3-ce33bb96652e|efcad525-9580-4246-bc83-a6182ac3d563"
+        "clearance|147953500|87006500|2b5f68a9-df7a-4569-8246-788c04009dc9|980ef932-138e-4b0f-ba85-e8b459c2feac",
+        "clearance|148146500|88506500|e877dd74-49d3-44a3-b666-84c58e44c902|6645b753-00df-4d42-ad96-53783ffaf913",
+        "clearance|149126500|87006500|d0e25e97-0094-495e-9c99-cd1e4c941c5f|c82ba8b4-8104-4ac1-a76c-f39b4411f5e0",
+        "clearance|149126500|88506500|bc7c0277-014e-4f01-af16-3d3630a647a2|617a04e5-0130-48d4-9099-36ef79be8e38",
+        "courtyards_overlap|117340001|64770001|df8f6a37-29fe-4e83-b7d3-ce33bb96652e|efcad525-9580-4246-bc83-a6182ac3d563",
+        "courtyards_overlap|89500001|58890001|5f9957ff-3b0b-4618-8e72-f96cdb1ee4f2|07194f3b-680a-4834-806e-04cd084fa0e5",
+        "solder_mask_bridge|74600000|106625000|c07b774f-443f-4901-8444-4d6c24fcff55|ca56a943-a2bd-48a1-914d-26679e2398b6"
       ],
       "meta": {
         "version": 2
@@ -218,6 +220,7 @@
   },
   "erc": {
     "erc_exclusions": [
+      "multiple_net_names|3340100|800100|5f31daea-3b38-405e-8256-6176384d0449|21f69e6b-cb66-4ac4-a639-b447e99fefe4|||",
       "multiple_net_names|3340100|800100|9d2611cb-b4fc-4e73-bf48-7ee23ab17978|21f69e6b-cb66-4ac4-a639-b447e99fefe4|||"
     ],
     "meta": {
@@ -419,10 +422,10 @@
       "no_connect_dangling": "warning",
       "pin_not_connected": "error",
       "pin_not_driven": "error",
-      "pin_to_pin": "warning",
+      "pin_to_pin": "error",
       "power_pin_not_driven": "error",
       "similar_labels": "warning",
-      "simulation_model_issue": "error",
+      "simulation_model_issue": "ignore",
       "unannotated": "error",
       "unit_value_mismatch": "error",
       "unresolved_variable": "error",
