@@ -1,5 +1,4 @@
 #include <Adafruit_GFX.h>  // Core graphics library
-#include <Adafruit_LIS2MDL.h>
 #include <Adafruit_LTR329_LTR303.h>
 #include <Adafruit_ST7789.h>  // Hardware-specific library for ST7789
 #include <Arduino.h>
@@ -7,6 +6,8 @@
 #include <TinyGPSPlus.h>
 
 #include <algorithm>
+
+#include "arduino-compass.h"
 
 constexpr bool kUseScreen = false;
 
@@ -16,7 +17,6 @@ constexpr int kLed = PB4;
 constexpr int kMiso = PB2;
 constexpr int kMosi = PA4;
 constexpr int kSck = PB8;
-constexpr int kCompassCs = PB9;
 
 // Radio
 constexpr int kRadioCs = PA15;
@@ -35,9 +35,9 @@ Adafruit_ST7789 screen = Adafruit_ST7789(kScreenCs, kScreenDc, kScreenReset);
 constexpr int kScl = PA9;
 constexpr int kSda = PA10;
 
-Adafruit_LIS2MDL compass;
 Adafruit_LTR303 light_sensor;
 TinyGPSPlus gps;
+ArduinoCompass compass;
 
 SPISettings radio_spi_settings(10 * 1000 * 1000, MSBFIRST, SPI_MODE0);
 SX1262 radio = new Module(kRadioCs, kRadioDio1, /*rst=*/RADIOLIB_NC,
@@ -153,14 +153,6 @@ void setup() {
   SPI.setSCLK(kSck);
 
   delay(100);
-  // if (!compass.begin_SPI(kCompassCs)) {
-  //   Serial2.println("Compass init failed");
-  //   FatalError();
-  // }
-  // compass.setDataRate(LIS2MDL_RATE_10_HZ);
-  // compass.setOffsetCancellation(true);
-  // compass.setLowPassFilter(true);
-
   // TODO: re-enable when light sensor can be soldered reliably
   // Wire.setSCL(kScl);
   // Wire.setSDA(kSda);
@@ -205,63 +197,6 @@ void setup() {
   }
 }
 
-void DumpCompassMinMax() {
-  static int16_t x_min = 1000;
-  static int16_t x_max = 0;
-  static int16_t y_min = 1000;
-  static int16_t y_max = 0;
-  static int16_t z_min = 1000;
-  static int16_t z_max = 0;
-
-  sensors_event_t event;
-  compass.getEvent(&event);
-
-  x_min = std::min(compass.raw.x, x_min);
-  x_max = std::max(compass.raw.x, x_max);
-
-  y_min = std::min(compass.raw.y, y_min);
-  y_max = std::max(compass.raw.y, y_max);
-
-  z_min = std::min(compass.raw.z, z_min);
-  z_max = std::max(compass.raw.z, z_max);
-  Serial2.printf("%6d, %6d, %6d, %6d, %6d, %6d\n", x_min, x_max, y_min, y_max,
-                 z_min, z_max);
-}
-
-float GetCompassHeadingRadians() {
-  sensors_event_t event;
-  compass.getEvent(&event);
-  int16_t x = compass.raw.x + 173;
-  int16_t y = compass.raw.y + 210;
-  int16_t z = compass.raw.z - 89;
-  return atan2(y, x);
-}
-
-float RadiansToDegrees(float radians) {
-  float heading = (radians * 180) / 3.141593;
-
-  // Normalize to 0-360
-  if (heading < 0) {
-    heading = 360 + heading;
-  }
-
-  return heading;
-}
-
-void DumpCompassHeading() {
-  Serial2.println(RadiansToDegrees(GetCompassHeadingRadians()));
-}
-
-// For use with the Jupyter notebook in Adafruit's calibration guide:
-// https://learn.adafruit.com/adafruit-sensorlab-magnetometer-calibration/magnetic-calibration-with-jupyter
-// https://raw.githubusercontent.com/adafruit/Adafruit_SensorLab/master/notebooks/Mag_Gyro_Calibration.ipynb
-void DumpCompassValuesForCalibration() {
-  sensors_event_t event;
-  compass.getEvent(&event);
-  Serial2.printf("Uni:0,0,0,0,0,0,%d,%d,%d\n", compass.raw.x, compass.raw.y,
-                 compass.raw.z);
-}
-
 void DisplayCompass() {
   static constexpr float kCircleRadius = 100;
   static constexpr int16_t kCompassCenterX = 120;
@@ -273,7 +208,7 @@ void DisplayCompass() {
   screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y,
                   ST77XX_BLACK);
 
-  heading = GetCompassHeadingRadians();
+  heading = compass.GetHeadingRadians();
   compass_x = kCompassCenterX + kCircleRadius * cos(2 * 3.141593 - heading);
   compass_y = kCompassCenterY + kCircleRadius * sin(2 * 3.141593 - heading);
   screen.drawLine(kCompassCenterX, kCompassCenterY, compass_x, compass_y,
@@ -282,7 +217,7 @@ void DisplayCompass() {
   screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/50, /*h=*/15, ST77XX_BLACK);
   screen.setCursor(0, 0);
   screen.setTextColor(ST77XX_WHITE);
-  screen.printf("%3d", (int16_t)RadiansToDegrees(heading));
+  screen.printf("%3d", (int16_t)Compass::RadiansToDegrees(heading));
 }
 
 void DumpLightSensor() {
@@ -389,9 +324,6 @@ constexpr float kLongitude = 0;
 
 void loop() {
   static bool last_op_transmit = false;
-  // DumpCompassValuesForCalibration();
-  // delay(101);
-  // return;
 
   // DumpGpsLocation();
   // DumpGpsOutput();
