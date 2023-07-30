@@ -8,6 +8,8 @@
 
 #include <algorithm>
 
+constexpr bool kUseScreen = false;
+
 constexpr int kLed = PB4;
 
 // SPI
@@ -38,8 +40,7 @@ Adafruit_LTR303 light_sensor;
 TinyGPSPlus gps;
 
 SPISettings radio_spi_settings(10 * 1000 * 1000, MSBFIRST, SPI_MODE0);
-// SX1262 radio = new Module(kRadioCs, kRadioDio1, /*rst=*/RADIOLIB_NC,
-SX1261 radio = new Module(kRadioCs, kRadioDio1, /*rst=*/RADIOLIB_NC,
+SX1262 radio = new Module(kRadioCs, kRadioDio1, /*rst=*/RADIOLIB_NC,
                           /*gpio=*/kRadioBusy, SPI, radio_spi_settings);
 volatile bool radio_idle = true;
 
@@ -142,7 +143,7 @@ void setup() {
   digitalWrite(kScreenBlk, HIGH);
 
   pinMode(kRadioRxen, OUTPUT);
-  digitalWrite(kRadioRxen, LOW);
+  digitalWrite(kRadioRxen, HIGH);
 
   Serial2.begin(115200);
   Serial2.printf("Booting...\n");
@@ -179,8 +180,8 @@ void setup() {
 
   // Configure radio
   Serial2.print("Initializing radio... ");
-  int state = radio.begin(/*freq=*/915.0, /*bw*/ 125.0, /*sf=*/9, /*cr=*/7,
-                          /*syncWord=*/18, /*power=*/0, /*preambleLength=*/8,
+  int state = radio.begin(/*freq=*/915.0, /*bw*/ 125, /*sf=*/9, /*cr=*/7,
+                          /*syncWord=*/18, /*power=*/22, /*preambleLength=*/8,
                           /*txcoVoltage=*/1.8, /*useRegulatorLdo=*/false);
   if (state == RADIOLIB_ERR_NONE) {
     Serial2.println("success.");
@@ -190,7 +191,7 @@ void setup() {
     FatalError();
   }
   radio.setDio1Action(SetRadioIdle);
-  // radio.setRfSwitchPins(kRadioRxen, RADIOLIB_NC);
+  radio.setRfSwitchPins(kRadioRxen, RADIOLIB_NC);
   state = radio.setDio2AsRfSwitch(true);
   if (state != RADIOLIB_ERR_NONE) {
     Serial2.printf("`radio.setDio2AsRfSwitch` failed: %d\n");
@@ -199,7 +200,9 @@ void setup() {
 
   // digitalWrite(kLed, LOW);
 
-  ConfigureScreen();
+  if (kUseScreen) {
+    ConfigureScreen();
+  }
 }
 
 void DumpCompassMinMax() {
@@ -369,16 +372,16 @@ int16_t last_snr = 0;
 
 void Transmit() {
   Serial2.printf("Transmitting... (%d)\n", radio_idle);
-  digitalWrite(kRadioRxen, LOW);
-  delay(1);
+  // digitalWrite(kRadioRxen, LOW);
+  // delay(1);
   int state = radio.startTransmit("test message");
   if (state == RADIOLIB_ERR_NONE) {
-    Serial2.println("Radio transmit success!");
+    Serial2.println("Radio start transmit success!");
   } else {
     Serial2.printf("Radio transmit failed, code: %d\n", state);
   }
-  digitalWrite(kRadioRxen, HIGH);
-  delay(1);
+  // digitalWrite(kRadioRxen, HIGH);
+  // delay(1);
 }
 
 constexpr float kLatitude = 0;
@@ -436,7 +439,7 @@ void loop() {
   }
 
   if (!last_op_transmit && millis() > force_send_packet_at) {
-    force_send_packet_at = millis() + 500;
+    force_send_packet_at = millis() + 500 + random(100);
     radio.standby();
     last_op_transmit = true;
     Transmit();
@@ -449,7 +452,7 @@ void loop() {
 
   digitalWrite(kLed, (millis() / 100) % 25 == 0);
 
-  if (millis() > screen_update_at) {
+  if (kUseScreen && millis() > screen_update_at) {
     // DisplayCompass();
 
     screen.fillRect(/*x=*/0, /*y=*/0, /*w=*/120, /*h=*/64, ST77XX_BLACK);
@@ -459,9 +462,9 @@ void loop() {
     screen.printf("RSSI: %4d\n", last_rssi);
     screen.printf("SNR:  %4d\n", last_snr);
     if (gps.location.isValid()) {
-      screen.printf("Dis: %5d",
-                    (int32_t) gps.distanceBetween(gps.location.lat(), gps.location.lng(),
-                                        kLatitude, kLongitude));
+      screen.printf("Dis: %5d", (int32_t)gps.distanceBetween(
+                                    gps.location.lat(), gps.location.lng(),
+                                    kLatitude, kLongitude));
     }
 
     screen_update_at = millis() + kScreenUpdateEvery;
