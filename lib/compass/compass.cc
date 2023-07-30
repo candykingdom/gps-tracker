@@ -8,8 +8,12 @@ float Compass::RadiansToDegrees(float radians) {
   float heading = (radians * 180.0) / kPi;
 
   // Normalize to 0-360
-  if (heading < 0) {
-    heading = 360 + heading;
+  while (heading < 0) {
+    heading += 360;
+  }
+
+  while (heading >= 360) {
+    heading -= 360;
   }
 
   return heading;
