@@ -10,6 +10,9 @@ class ArduinoCompass : public Compass {
 
   bool Begin();
 
+// For use with the Jupyter notebook in Adafruit's calibration guide:
+// https://learn.adafruit.com/adafruit-sensorlab-magnetometer-calibration/magnetic-calibration-with-jupyter
+// https://raw.githubusercontent.com/adafruit/Adafruit_SensorLab/master/notebooks/Mag_Gyro_Calibration.ipynb
   void DumpValuesForCalibration();
 
  private:

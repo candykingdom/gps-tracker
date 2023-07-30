@@ -8,6 +8,7 @@
 #include <algorithm>
 
 #include "arduino-compass.h"
+#include "arduino-gps.h"
 
 constexpr bool kUseScreen = false;
 
@@ -36,8 +37,8 @@ constexpr int kScl = PA9;
 constexpr int kSda = PA10;
 
 Adafruit_LTR303 light_sensor;
-TinyGPSPlus gps;
 ArduinoCompass compass;
+ArduinoGps gps;
 
 SPISettings radio_spi_settings(10 * 1000 * 1000, MSBFIRST, SPI_MODE0);
 SX1262 radio = new Module(kRadioCs, kRadioDio1, /*rst=*/RADIOLIB_NC,
@@ -84,28 +85,6 @@ String withChecksum(String sentence) {
   String sentenceWithChecksum =
       sentence + (checksum < 10 ? "0" : "") + String(checksum, HEX);
   return sentenceWithChecksum;
-}
-
-// Sets up the GPS.
-void ConfigureGps() {
-  // TODO: increase baud? Default is 9600, which is pretty slow.
-
-  // Disable all output messages except for position. We don't use the other
-  // messages, and the serial input buffer is small.
-
-  // Disable most output messages, except for GGA (which contains position)
-  // Format:
-  // $PMTK314,<GLL>,<RMC>,<VTG>,<GGA>,<GSA>,<GSV>,<Res1>,<Res2>,<Res3>,<Res4>,
-  // <Res5>,<Res6>,<Res7>,<Res8>,<Res9>,<Res10>,<Res11>,<Res12>,<Res13>,<Res14>,
-  // <GBS>,<Res16>
-  Serial3.println(
-      withChecksum("$PMTK314,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*"));
-
-  // Disable TXT messages.
-  // Format: $PQTXT,W,<Mode>,<Save>
-  Serial3.println(withChecksum("$PQTXT,W,0,0*"));
-
-  // TODO: enter GLP (adaptive low-power) mode
 }
 
 void ConfigureScreen() {
@@ -166,9 +145,15 @@ void setup() {
   // light_sensor.setIntegrationTime(LTR3XX_INTEGTIME_400);
   // light_sensor.setMeasurementRate(LTR3XX_MEASRATE_500);
 
-  // Configure GPS
-  Serial3.begin(9600);
-  ConfigureGps();
+  if (!compass.Begin()) {
+    Serial2.println("Failed to initialize compass");
+    FatalError();
+  }
+
+  if (!gps.Begin()) {
+    Serial2.println("Failed to initialize GPS");
+    FatalError();
+  }
 
   // Configure radio
   Serial2.print("Initializing radio... ");
@@ -237,63 +222,6 @@ void DumpLightSensor() {
   }
 }
 
-void GetGpsFirmwareVersion() {
-  Serial3.println("$PQVERNO,R*3F");
-  // TODO: read a response
-}
-
-void DumpGpsOutput() {
-  while (Serial3.available()) {
-    char in = Serial3.read();
-    Serial2.print(in);
-  }
-}
-
-void DumpGpsLocation() {
-  static const char* location = R"str(
-$GNGGA,010809.000,4002.299834,N,10515.657245,W,2,12,0.84,1612.078,M,-20.609,M,,*7B
-)str";
-  // for (char const* c = location; *c != 0; c++) {
-  //   gps.encode(*c);
-  // }
-
-  static uint32_t print_at = 0;
-  static constexpr uint32_t kPrintEvery = 1000;
-
-  while (Serial3.available() > 0) {
-    char in = Serial3.read();
-    gps.encode(in);
-  }
-
-  if (millis() < print_at) {
-    return;
-  }
-  print_at = millis() + kPrintEvery;
-
-  Serial2.printf(
-      "GPS comms:  with_fix=%d, chars=%d, checksum_failed=%d, "
-      "checksum_passed=%d\n",
-      gps.sentencesWithFix(), gps.charsProcessed(), gps.failedChecksum(),
-      gps.passedChecksum());
-
-  if (gps.satellites.isValid()) {
-    Serial2.printf("Found %d satellites\n", gps.satellites.value());
-  } else {
-    Serial2.println("Found no satellites");
-  }
-
-  if (gps.location.isValid()) {
-    Serial2.print("Location: ");
-    Serial2.print(gps.location.lat(), 3);
-    Serial2.print(", ");
-    Serial2.println(gps.location.lng(), 3);
-  } else {
-    Serial2.println("No valid GPS location");
-  }
-
-  Serial2.println();
-}
-
 uint32_t print_at = 0;
 constexpr uint32_t kPrintEvery = 1000;
 
@@ -325,10 +253,6 @@ constexpr float kLongitude = 0;
 void loop() {
   static bool last_op_transmit = false;
 
-  // DumpGpsLocation();
-  // DumpGpsOutput();
-  // delay(1000);
-
   // int state = radio.startReceive();
   // if (state == RADIOLIB_ERR_NONE) {
   //   Serial2.println("Radio receive success!");
@@ -338,10 +262,7 @@ void loop() {
   //   delay(500);
   // }
 
-  while (Serial3.available() > 0) {
-    char in = Serial3.read();
-    gps.encode(in);
-  }
+  gps.Step();
 
   if (millis() > 3000 && radio_idle) {
     radio_idle = false;
@@ -393,9 +314,10 @@ void loop() {
     screen.printf("Up: %6u\n", millis() - received_packet_at);
     screen.printf("RSSI: %4d\n", last_rssi);
     screen.printf("SNR:  %4d\n", last_snr);
-    if (gps.location.isValid()) {
-      screen.printf("Dis: %5d", (int32_t)gps.distanceBetween(
-                                    gps.location.lat(), gps.location.lng(),
+    Coordinates coordinates = gps.GetCoordinates();
+    if (coordinates.valid) {
+      screen.printf("Dis: %5d", (int32_t)TinyGPSPlus::distanceBetween(
+                                    coordinates.latitude, coordinates.longitude,
                                     kLatitude, kLongitude));
     }
 
