@@ -9,6 +9,7 @@
 
 #include "arduino-compass.h"
 #include "arduino-gps.h"
+#include "radio.h"
 
 constexpr bool kUseScreen = false;
 
