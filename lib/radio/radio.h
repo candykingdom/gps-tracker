@@ -23,13 +23,19 @@ class Radio {
   void Step();
   bool IsIdle();
 
+  // According to the datasheet, this should consume 118mA. Assumptions: +22
+  // dBm.
   int16_t StartTransmit(uint8_t* data, size_t len);
 
   int16_t ReceivedPacketLength();
   uint8_t* GetPacketBuffer();
 
+  // According to the datasheet, this should consume 5.3mA. Assumptions: DC-DC
+  // mode, Rx Boosted, LoRa 125kHz.
   int16_t StartReceive();
 
+  // Put the radio into standy. According to the datasheet, this should consume
+  // 0.8mA.
   int16_t Standby();
 
 #ifndef ARDUINO
