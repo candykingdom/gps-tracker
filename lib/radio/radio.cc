@@ -1,9 +1,9 @@
 #include "radio.h"
 
 // Not a class member because `setDio1Action` takes a C-style function
-volatile bool radio_idle = false;
+volatile bool dio_rose = false;
 
-void SetRadioIdle() { radio_idle = true; }
+void SetRadioIdle() { dio_rose = true; }
 
 bool Radio::Begin() {
   Serial2.print("Initializing radio... ");
@@ -29,3 +29,30 @@ bool Radio::Begin() {
 
   return true;
 }
+
+void Radio::Step() {
+  if (dio_rose) {
+    if (prev_op_ == RadioOperation::kTransmit) {
+      radio_.finishTransmit();
+      prev_op_ = RadioOperation::kNone;
+    }
+    dio_rose = false;
+  }
+}
+
+bool Radio::IsIdle() { return prev_op_ == RadioOperation::kNone; }
+
+int16_t Radio::StartTransmit(uint8_t* const data, const size_t len) {
+  if (!IsIdle()) {
+    Serial2.println("Error: tried to transmit while not idle");
+    return RADIOLIB_ERR_TX_TIMEOUT;
+  }
+
+  prev_op_ = RadioOperation::kTransmit;
+  dio_rose = false;
+  return radio_.startTransmit(data, len);
+}
+
+#ifndef ARDUINO
+NativeHal& Radio::GetHal() { return hal_; }
+#endif  // ARDUINO

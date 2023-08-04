@@ -1,5 +1,7 @@
 #pragma once
 
+#include <array>
+
 #include "RadioLib.h"
 #include "types.h"
 
@@ -7,16 +9,34 @@
 #include "native-hal.h"
 #endif
 
+enum class RadioOperation {
+  kNone,
+  kTransmit,
+  kReceive,
+};
+
 class Radio {
  public:
   Radio() {}
   bool Begin();
+
+  void Step();
+  bool IsIdle();
+
+  int16_t StartTransmit(uint8_t* data, size_t len);
+
+#ifndef ARDUINO
+  // For testing
+  NativeHal& GetHal();
+#endif  // ARDUINO
 
  private:
   static constexpr int kRadioCs = PA15;
   static constexpr int kRadioDio1 = PB6;
   static constexpr int kRadioBusy = PB7;
   static constexpr int kRadioRxen = PC6;
+
+  RadioOperation prev_op_ = RadioOperation::kNone;
 
 #ifdef ARDUINO
   SPISettings radio_spi_settings_{10 * 1000 * 1000, MSBFIRST, SPI_MODE0};

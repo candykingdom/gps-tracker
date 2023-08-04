@@ -40,9 +40,18 @@ class NativeHal : public RadioLibHal {
   void setMillis(unsigned long millis);
   void setMicros(unsigned long micros);
 
+  // For testing
+  bool TransmittedPacket();
+  const uint8_t* GetTransmittedPacket(size_t* len);
+
  private:
   unsigned long millis_ = 0;
   unsigned long micros_ = 0;
+
+  static constexpr size_t kTransmittedPacketBufferSize = 200;
+  uint8_t transmitted_packet_buffer_[kTransmittedPacketBufferSize] = {0};
+  size_t transmitted_packet_length_ = 0;
+  bool transmitted_packet_ = false;
 
   // Copied from RadioLib's Module.h, since those values are not static
   static constexpr uint8_t kSpiRead = 0;

@@ -55,6 +55,13 @@ void NativeHal::spiTransfer(uint8_t* out, size_t len, uint8_t* in) {
     spi_printf("SPI get packet type\n");
     assert(len == 3);
     in[2] = RADIOLIB_SX126X_PACKET_TYPE_LORA;
+  } else if (out[0] == RADIOLIB_SX126X_CMD_WRITE_BUFFER) {
+    spi_printf("SPI write buffer\n");
+    transmitted_packet_length_ = len - 2;
+    assert(transmitted_packet_length_ <= kTransmittedPacketBufferSize);
+    memcpy(transmitted_packet_buffer_, &out[2], transmitted_packet_length_);
+  } else if (out[0] == RADIOLIB_SX126X_CMD_SET_TX) {
+    transmitted_packet_ = true;
   } else {
     spi_printf("spiTransfer: ");
     for (size_t i = 0; i < len; i++) {
@@ -62,4 +69,12 @@ void NativeHal::spiTransfer(uint8_t* out, size_t len, uint8_t* in) {
     }
     spi_printf("\n");
   }
+}
+
+bool NativeHal::TransmittedPacket() { return transmitted_packet_; }
+
+const uint8_t* NativeHal::GetTransmittedPacket(size_t* const len) {
+  transmitted_packet_ = false;
+  *len = transmitted_packet_length_;
+  return transmitted_packet_buffer_;
 }
