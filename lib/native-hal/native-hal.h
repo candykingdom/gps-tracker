@@ -1,6 +1,14 @@
 #include "RadioLib.h"
 #include "types.h"
 
+enum class HalOperation {
+  kNone,
+  kTransmitWrite,
+  kTransmitTx,
+  kReceiveRx,
+  kReceiveRead,
+};
+
 class NativeHal : public RadioLibHal {
  public:
   static constexpr uint32_t kInput = 0;
@@ -43,17 +51,16 @@ class NativeHal : public RadioLibHal {
   // For testing
   bool TransmittedPacket();
   const uint8_t* GetTransmittedPacket(size_t* len);
+  void SetReceivedPacket(const uint8_t* buffer, size_t len);
 
  private:
+  void CheckPrevOp(HalOperation expected);
+
   unsigned long millis_ = 0;
   unsigned long micros_ = 0;
 
-  static constexpr size_t kTransmittedPacketBufferSize = 200;
-  uint8_t transmitted_packet_buffer_[kTransmittedPacketBufferSize] = {0};
-  size_t transmitted_packet_length_ = 0;
-  bool transmitted_packet_ = false;
-
-  // Copied from RadioLib's Module.h, since those values are not static
-  static constexpr uint8_t kSpiRead = 0;
-  static constexpr uint8_t kSpiWrite = 0x80;
+  static constexpr size_t kPacketBufferSize = 200;
+  uint8_t packet_buffer_[kPacketBufferSize] = {0};
+  size_t packet_length_ = 0;
+  HalOperation prev_op_ = HalOperation::kNone;
 };

@@ -35,6 +35,14 @@ void Radio::Step() {
     if (prev_op_ == RadioOperation::kTransmit) {
       radio_.finishTransmit();
       prev_op_ = RadioOperation::kNone;
+    } else if (prev_op_ == RadioOperation::kReceive) {
+      packet_length_ = radio_.getPacketLength();
+      int16_t read_status =
+          radio_.readData(packet_buffer_, packet_length_);
+      if (read_status != RADIOLIB_ERR_NONE) {
+        packet_length_ = 0;
+      }
+      prev_op_ = RadioOperation::kNone;
     }
     dio_rose = false;
   }
@@ -51,6 +59,21 @@ int16_t Radio::StartTransmit(uint8_t* const data, const size_t len) {
   prev_op_ = RadioOperation::kTransmit;
   dio_rose = false;
   return radio_.startTransmit(data, len);
+}
+
+int16_t Radio::ReceivedPacketLength() { return packet_length_; }
+
+uint8_t* Radio::GetPacketBuffer() { return packet_buffer_; }
+
+int16_t Radio::StartReceive() {
+  if (!IsIdle()) {
+    Serial2.println("Error: tried to receive while not idle");
+    return RADIOLIB_ERR_RX_TIMEOUT;
+  }
+
+  prev_op_ = RadioOperation::kReceive;
+  dio_rose = false;
+  return radio_.startReceive();
 }
 
 #ifndef ARDUINO

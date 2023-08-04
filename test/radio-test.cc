@@ -46,3 +46,35 @@ TEST(RadioTest, TransmitFailsWhenNotIdle) {
 
   ASSERT_EQ(radio.StartTransmit((uint8_t*)str, 5), RADIOLIB_ERR_TX_TIMEOUT);
 }
+
+TEST(RadioTest, Receives) {
+  Radio radio;
+  ASSERT_TRUE(radio.Begin());
+  ASSERT_TRUE(radio.IsIdle());
+
+  char str[6] = "hello";
+  ASSERT_EQ(radio.StartReceive(), 0);
+  EXPECT_FALSE(radio.IsIdle());
+  NativeHal& hal = radio.GetHal();
+
+  hal.SetReceivedPacket((uint8_t*)str, 5);
+  SetRadioIdle();
+  radio.Step();
+
+  EXPECT_TRUE(radio.IsIdle());
+  ASSERT_EQ(radio.ReceivedPacketLength(), 5);
+  EXPECT_STREQ((char*)radio.GetPacketBuffer(), str);
+}
+
+TEST(RadioTest, ReceiveFailsWhenNotIdle) {
+  Radio radio;
+  ASSERT_TRUE(radio.Begin());
+  ASSERT_TRUE(radio.IsIdle());
+
+  char str[6] = "hello";
+  ASSERT_EQ(radio.StartReceive(), 0);
+  ASSERT_FALSE(radio.IsIdle());
+  NativeHal& hal = radio.GetHal();
+
+  EXPECT_EQ(radio.StartReceive(), RADIOLIB_ERR_RX_TIMEOUT);
+}

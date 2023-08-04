@@ -25,6 +25,11 @@ class Radio {
 
   int16_t StartTransmit(uint8_t* data, size_t len);
 
+  int16_t ReceivedPacketLength();
+  uint8_t* GetPacketBuffer();
+
+  int16_t StartReceive();
+
 #ifndef ARDUINO
   // For testing
   NativeHal& GetHal();
@@ -37,6 +42,10 @@ class Radio {
   static constexpr int kRadioRxen = PC6;
 
   RadioOperation prev_op_ = RadioOperation::kNone;
+
+  static constexpr size_t kPacketBufferSize = 30;
+  uint8_t packet_buffer_[kPacketBufferSize] = {0};
+  int16_t packet_length_ = 0;
 
 #ifdef ARDUINO
   SPISettings radio_spi_settings_{10 * 1000 * 1000, MSBFIRST, SPI_MODE0};
