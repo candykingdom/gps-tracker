@@ -9,6 +9,7 @@
 
 class Radio {
  public:
+  Radio() {}
   bool Begin();
 
  private:
@@ -23,7 +24,8 @@ class Radio {
                              /*gpio=*/kRadioBusy, SPI, radio_spi_settings_);
 #else  // ARDUINO
   NativeHal hal_;
-  SX1262 radio_ = new Module(&hal_, kRadioCs, kRadioDio1, /*rst=*/RADIOLIB_NC,
-                             /*gpio=*/kRadioBusy);
+  Module module_{&hal_, kRadioCs, kRadioDio1, /*rst=*/RADIOLIB_NC,
+                 /*gpio=*/kRadioBusy};
+  SX1262 radio_ = SX1262(&module_);
 #endif
 };

@@ -1,3 +1,10 @@
+#include "radio.h"
+
 #include <gtest/gtest.h>
 
-#include "radio.h"
+#include <cstdio>
+
+TEST(RadioTest, Initializes) {
+  Radio radio;
+  ASSERT_TRUE(radio.Begin());
+}
