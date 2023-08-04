@@ -37,8 +37,7 @@ void Radio::Step() {
       prev_op_ = RadioOperation::kNone;
     } else if (prev_op_ == RadioOperation::kReceive) {
       packet_length_ = radio_.getPacketLength();
-      int16_t read_status =
-          radio_.readData(packet_buffer_, packet_length_);
+      int16_t read_status = radio_.readData(packet_buffer_, packet_length_);
       if (read_status != RADIOLIB_ERR_NONE) {
         packet_length_ = 0;
       }
@@ -74,6 +73,13 @@ int16_t Radio::StartReceive() {
   prev_op_ = RadioOperation::kReceive;
   dio_rose = false;
   return radio_.startReceive();
+}
+
+int16_t Radio::Standby() {
+  // TODO: should this be allowed if the radio is currently transmitting?
+  prev_op_ = RadioOperation::kNone;
+  dio_rose = false;
+  return radio_.standby();
 }
 
 #ifndef ARDUINO

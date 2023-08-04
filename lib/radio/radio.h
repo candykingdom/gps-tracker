@@ -30,6 +30,8 @@ class Radio {
 
   int16_t StartReceive();
 
+  int16_t Standby();
+
 #ifndef ARDUINO
   // For testing
   NativeHal& GetHal();

@@ -78,3 +78,9 @@ TEST(RadioTest, ReceiveFailsWhenNotIdle) {
 
   EXPECT_EQ(radio.StartReceive(), RADIOLIB_ERR_RX_TIMEOUT);
 }
+
+TEST(RadioTest, Standby) {
+  Radio radio;
+  ASSERT_TRUE(radio.Begin());
+  radio.Standby();
+}
